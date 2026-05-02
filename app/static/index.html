@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DH Core - Terminal</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div class="topbar">
+<h1>CORE // PEOPLE <span class="cursor"></span></h1>
+<nav>
+<button class="active" data-section="person">PERSON</button>
+<button data-section="contact">CONTACT</button>
+<button data-section="identity">IDENTITY</button>
+<button data-section="social">SOCIAL</button>
+</nav>
+<span id="msg"></span>
+</div>
+
+<div class="main">
+<div class="content">
+
+<div class="section active" id="sec-person">
+<div class="panel">
+<h3>PERSON</h3>
+<div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/persons/<b>{uuid}</b></span><div class="controls">
+<input type="text" id="get-uuid" placeholder="person_uuid" style="width:130px"><button data-verb="GET" id="get-btn">FETCH</button></div></div>
+<div class="endpoint-row"><span class="verb post">POST</span><span class="path">/v1/people/persons</span><div class="controls">
+<input type="text" id="c-email" placeholder="email" style="width:100px">
+<input type="text" id="c-fname" placeholder="first_name" style="width:80px">
+<input type="text" id="c-lname" placeholder="last_name" style="width:80px">
+<button data-verb="POST" id="create-btn">CREATE</button></div></div>
+<div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/persons/check-exists<b>?email=</b></span><div class="controls">
+<input type="text" id="check-email" placeholder="email" style="width:120px"><button data-verb="GET" id="check-btn">CHECK</button></div></div>
+<div class="endpoint-row"><span class="verb patch">PATCH</span><span class="path">/v1/people/persons/<b>{uuid}</b>/status</span><div class="controls">
+<input type="text" id="stat-uuid" placeholder="person_uuid" style="width:100px">
+<select id="stat-val" style="width:90px"><option>APPROVED</option><option>PENDING</option><option>REJECTED</option></select>
+<button data-verb="PATCH" id="status-btn">UPDATE</button></div></div>
+<pre id="out-person">...</pre>
+</div>
+</div>
+
+<div class="section" id="sec-contact">
+<div class="panel">
+<h3>EMAILS</h3>
+<div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/persons/<b>{uuid}</b>/emails</span><div class="controls">
+<input type="text" id="em-list-uuid" placeholder="person_uuid" style="width:130px"><button data-verb="GET" id="em-list-btn">LIST</button></div></div>
+<div class="endpoint-row"><span class="verb post">POST</span><span class="path">/v1/people/persons/<b>{uuid}</b>/emails</span><div class="controls">
+<input type="text" id="em-uuid" placeholder="person_uuid" style="width:100px">
+<input type="text" id="em-email" placeholder="email" style="width:120px">
+<button data-verb="POST" id="em-create-btn">ADD</button></div></div>
+<pre id="out-emails">...</pre>
+</div>
+<div class="panel">
+<h3>PHONES</h3>
+<div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/persons/<b>{uuid}</b>/phones</span><div class="controls">
+<input type="text" id="ph-list-uuid" placeholder="person_uuid" style="width:130px"><button data-verb="GET" id="ph-list-btn">LIST</button></div></div>
+<div class="endpoint-row"><span class="verb post">POST</span><span class="path">/v1/people/persons/<b>{uuid}</b>/phones</span><div class="controls">
+<input type="text" id="ph-uuid" placeholder="person_uuid" style="width:100px">
+<input type="text" id="ph-code" placeholder="+52" style="width:40px">
+<input type="text" id="ph-num" placeholder="number" style="width:90px">
+<button data-verb="POST" id="ph-create-btn">ADD</button></div></div>
+<pre id="out-phones">...</pre>
+</div>
+</div>
+
+<div class="section" id="sec-identity">
+<div class="panel">
+<h3>PERSONAL IDENTIFIERS</h3>
+<div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/persons/<b>{uuid}</b>/identifiers</span><div class="controls">
+<input type="text" id="id-list-uuid" placeholder="person_uuid" style="width:130px"><button data-verb="GET" id="id-list-btn">LIST</button></div></div>
+<div class="endpoint-row"><span class="verb post">POST</span><span class="path">/v1/people/persons/<b>{uuid}</b>/identifiers</span><div class="controls">
+<input type="text" id="id-uuid" placeholder="person_uuid" style="width:100px">
+<select id="id-type" style="width:110px"><option value="NATIONAL_ID">NATIONAL_ID</option><option value="FISCAL_ID">FISCAL_ID</option><option value="SOCIAL_SECURITY_ID">SOCIAL_SECURITY_ID</option></select>
+<input type="text" id="id-val" placeholder="identifier value" style="width:120px">
+<button data-verb="POST" id="id-create-btn">ADD</button></div></div>
+<pre id="out-ids">...</pre>
+</div>
+</div>
+
+<div class="section" id="sec-social">
+<div class="panel">
+<h3>EMERGENCY CONTACTS</h3>
+<div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/persons/<b>{uuid}</b>/emergency-contacts</span><div class="controls">
+<input type="text" id="ec-list-uuid" placeholder="person_uuid" style="width:130px"><button data-verb="GET" id="ec-list-btn">LIST</button></div></div>
+<div class="endpoint-row"><span class="verb post">POST</span><span class="path">/v1/people/persons/<b>{uuid}</b>/emergency-contacts</span><div class="controls">
+<input type="text" id="ec-uuid" placeholder="person_uuid" style="width:90px">
+<input type="text" id="ec-fname" placeholder="first_name" style="width:70px">
+<input type="text" id="ec-lname" placeholder="last_name" style="width:70px">
+<input type="text" id="ec-phone" placeholder="phone" style="width:80px">
+<input type="text" id="ec-email" placeholder="email" style="width:90px">
+<select id="ec-rel" style="width:100px"><option value="SPOUSE">SPOUSE</option><option value="PARENT">PARENT</option><option value="SIBLING">SIBLING</option><option value="CHILD">CHILD</option><option value="FRIEND">FRIEND</option><option value="CAREGIVER">CAREGIVER</option><option value="OTHER">OTHER</option></select>
+<button data-verb="POST" id="ec-create-btn">ADD</button></div></div>
+<pre id="out-ec">...</pre>
+</div>
+</div>
+
+</div></div>
+
+<br><hr>
+<h3>API_REFERENCE</h3>
+<ul>
+<li><a href="/docs" target="_blank">/docs &lt;Swagger UI&gt;</a></li>
+<li><a href="/redoc" target="_blank">/redoc &lt;ReDoc&gt;</a></li>
+<li><a href="/openapi.json" target="_blank">/openapi.json &lt;raw spec&gt;</a></li>
+</ul>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
