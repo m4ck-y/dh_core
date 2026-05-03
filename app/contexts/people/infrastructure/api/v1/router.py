@@ -70,18 +70,16 @@ async def update_person_status(uuid_person: str, payload: UpdatePersonStatusDTO)
 @people_router.get("/persons/check-exists", response_model=ApiResponseSingle[PersonExistsResponseDTO])
 async def check_person_exists(
     email: Optional[str] = Query(None, description="Email address to check"),
-    curp: Optional[str] = Query(None, description="CURP to check"),
+    personal_id: Optional[str] = Query(None, description="Personal identifier to check (CURP, NSS, fiscal number)"),
+    phone_code: Optional[str] = Query(None, description="Phone country code"),
+    phone_number: Optional[str] = Query(None, description="Phone number"),
 ):
-    """Check if a person exists by email or CURP."""
-    if not email and not curp:
-        raise HTTPException(status_code=400, detail="Provide email or curp.")
-    uc = CheckPersonExistsUseCase()
-    if email and curp:
-        result = await uc.by_email_or_curp(email=email, curp=curp)
-    elif email:
-        result = await uc.by_email(email=email)
-    else:
-        result = await uc.by_curp(curp=curp)
+    """Check which registration fields are already in use. UUIDs are logged internally — never returned."""
+    if not email and not personal_id and not (phone_code and phone_number):
+        raise HTTPException(status_code=400, detail="Provide at least one identifier: email, personal_id, or phone_code+phone_number.")
+    result = await CheckPersonExistsUseCase().execute(
+        email=email, personal_id=personal_id, phone_code=phone_code, phone_number=phone_number,
+    )
     return ApiResponseSingle(status_code=200, message="Check completed.", data=result)
 
 

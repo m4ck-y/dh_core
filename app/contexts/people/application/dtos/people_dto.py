@@ -51,8 +51,9 @@ class UpdatePersonStatusDTO(BaseModel):
 
 
 class PersonExistsResponseDTO(BaseModel):
-    exists: bool = Field(..., description="Whether the person exists in the system.")
-    uuid_person: Optional[str] = Field(None, description="UUID of the existing person if found.", examples=["550e8400-e29b-41d4-a716-446655440000"])
+    email_already_registered: bool = Field(False, description="Whether the email is already registered by any person.")
+    personal_id_already_registered: bool = Field(False, description="Whether the personal identifier (CURP/NSS/fiscal) is already associated with a person.")
+    phone_already_registered: bool = Field(False, description="Whether the phone is already registered by any person.")
 
 
 class CreateEmailDTO(BaseModel):
