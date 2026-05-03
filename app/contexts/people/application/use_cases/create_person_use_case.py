@@ -19,34 +19,34 @@ class CreatePersonUseCase:
             session.add(person)
             await session.flush()
 
-            int_id = person.id
-            person_uuid = person.uuid
+            id_person = person.id
+            uuid_person = person.uuid
 
-            session.add(Email(id_person=int_id, email=dto.email, type_email=EEmailType.PERSONAL))
-            session.add(Phone(id_person=int_id, code=dto.phone_code, number=dto.phone_number, type_phone=EPhoneType.MOBILE))
+            session.add(Email(id_person=id_person, email=dto.email, type_email=EEmailType.PERSONAL))
+            session.add(Phone(id_person=id_person, code=dto.phone_code, number=dto.phone_number, type_phone=EPhoneType.MOBILE))
             session.add(Birth(
-                id_person=int_id,
+                id_person=id_person,
                 birth_date=dto.birth_date,
                 key_birth_country=dto.key_birth_country,
                 key_state_birth=dto.key_birth_state,
             ))
 
             if dto.key_nationality:
-                session.add(LegalInfo(id_person=int_id, key_nationality=dto.key_nationality))
+                session.add(LegalInfo(id_person=id_person, key_nationality=dto.key_nationality))
 
             if dto.curp:
                 session.add(PersonalIdentifier(
-                    id_person=int_id,
+                    id_person=id_person,
                     id_identifier_type=EIdentifierType.NATIONAL_ID,
                     identifier_value=dto.curp,
                 ))
 
             await session.commit()
 
-        await logger.event("person_created", uuid_person=str(person_uuid))
+        await logger.event("person_created", uuid_person=str(uuid_person))
 
         return PersonResponseDTO(
-            uuid=person_uuid,
+            uuid=uuid_person,
             first_name=dto.first_name,
             last_name=dto.last_name,
             verification_status=EVerificationStatus.PENDING,

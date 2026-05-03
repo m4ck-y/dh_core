@@ -22,7 +22,7 @@ class CheckPersonExistsUseCase:
             person_data = result.first()
             if person_data:
                 await logger.event("person_check_by_email", email=email, found=True)
-                return PersonExistsResponseDTO(exists=True, person_uuid=str(person_data.uuid))
+                return PersonExistsResponseDTO(exists=True, uuid_person=str(person_data.uuid))
             await logger.event("person_check_by_email", email=email, found=False)
             return PersonExistsResponseDTO(exists=False)
 
@@ -36,7 +36,7 @@ class CheckPersonExistsUseCase:
             person_data = result.first()
             if person_data:
                 await logger.event("person_check_by_curp", curp=curp, found=True)
-                return PersonExistsResponseDTO(exists=True, person_uuid=str(person_data.uuid))
+                return PersonExistsResponseDTO(exists=True, uuid_person=str(person_data.uuid))
             await logger.event("person_check_by_curp", curp=curp, found=False)
             return PersonExistsResponseDTO(exists=False)
 

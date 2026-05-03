@@ -13,10 +13,10 @@ class CreatePhoneUseCase:
     async def execute(self, uuid_person: str, dto: CreatePhoneDTO) -> PhoneResponseDTO:
         async with AsyncSessionLocal() as session:
             person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
-            person_id = person.scalar_one_or_none()
-            if not person_id:
+            id_person = person.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
-            phone = Phone(id_person=person_id, code=dto.code, number=dto.number, type_phone=dto.type_phone)
+            phone = Phone(id_person=id_person, code=dto.code, number=dto.number, type_phone=dto.type_phone)
             session.add(phone)
             await session.flush()
             await session.refresh(phone)
@@ -29,9 +29,9 @@ class ListPhonesUseCase:
     async def execute(self, uuid_person: str) -> list[PhoneResponseDTO]:
         async with AsyncSessionLocal() as session:
             person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
-            person_id = person.scalar_one_or_none()
-            if not person_id:
+            id_person = person.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
-            result = await session.execute(select(Phone).where(Phone.id_person == person_id))
+            result = await session.execute(select(Phone).where(Phone.id_person == id_person))
             phones = result.scalars().all()
             return [PhoneResponseDTO(uuid=p.uuid, code=p.code, number=p.number, type_phone=p.type_phone) for p in phones]

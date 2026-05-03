@@ -13,11 +13,11 @@ class CreateIdentifierUseCase:
     async def execute(self, uuid_person: str, dto: CreateIdentifierDTO) -> IdentifierResponseDTO:
         async with AsyncSessionLocal() as session:
             person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
-            person_id = person.scalar_one_or_none()
-            if not person_id:
+            id_person = person.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
             ident = PersonalIdentifier(
-                id_person=person_id, id_identifier_type=dto.id_identifier_type,
+                id_person=id_person, id_identifier_type=dto.id_identifier_type,
                 identifier_value=dto.identifier_value,
             )
             session.add(ident)
@@ -32,9 +32,9 @@ class ListIdentifiersUseCase:
     async def execute(self, uuid_person: str) -> list[IdentifierResponseDTO]:
         async with AsyncSessionLocal() as session:
             person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
-            person_id = person.scalar_one_or_none()
-            if not person_id:
+            id_person = person.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
-            result = await session.execute(select(PersonalIdentifier).where(PersonalIdentifier.id_person == person_id))
+            result = await session.execute(select(PersonalIdentifier).where(PersonalIdentifier.id_person == id_person))
             ids = result.scalars().all()
             return [IdentifierResponseDTO(uuid=i.uuid, type=i.id_identifier_type, value=i.identifier_value) for i in ids]

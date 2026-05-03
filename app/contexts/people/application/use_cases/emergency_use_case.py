@@ -13,11 +13,11 @@ class CreateEmergencyContactUseCase:
     async def execute(self, uuid_person: str, dto: CreateEmergencyContactDTO) -> EmergencyContactResponseDTO:
         async with AsyncSessionLocal() as session:
             person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
-            person_id = person.scalar_one_or_none()
-            if not person_id:
+            id_person = person.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
             ec = EmergencyContact(
-                id_user_owner=person_id, relationship_type=dto.relationship_type,
+                id_user_owner=id_person, relationship_type=dto.relationship_type,
                 first_name=dto.first_name, last_name=dto.last_name,
                 phone_number=dto.phone_number, email=dto.email, notes=dto.notes,
             )
@@ -36,10 +36,10 @@ class ListEmergencyContactsUseCase:
     async def execute(self, uuid_person: str) -> list[EmergencyContactResponseDTO]:
         async with AsyncSessionLocal() as session:
             person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
-            person_id = person.scalar_one_or_none()
-            if not person_id:
+            id_person = person.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
-            result = await session.execute(select(EmergencyContact).where(EmergencyContact.id_user_owner == person_id))
+            result = await session.execute(select(EmergencyContact).where(EmergencyContact.id_user_owner == id_person))
             contacts = result.scalars().all()
             return [EmergencyContactResponseDTO(
                 uuid=c.uuid, first_name=c.first_name, last_name=c.last_name,

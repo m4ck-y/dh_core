@@ -52,7 +52,7 @@ class UpdatePersonStatusDTO(BaseModel):
 
 class PersonExistsResponseDTO(BaseModel):
     exists: bool = Field(..., description="Whether the person exists in the system.")
-    person_uuid: Optional[str] = Field(None, description="UUID of the existing person if found.", examples=["550e8400-e29b-41d4-a716-446655440000"])
+    uuid_person: Optional[str] = Field(None, description="UUID of the existing person if found.", examples=["550e8400-e29b-41d4-a716-446655440000"])
 
 
 class CreateEmailDTO(BaseModel):

@@ -16,12 +16,12 @@ class CreateAddressUseCase:
             result = await session.execute(
                 select(Person.id).where(Person.uuid == uuid.UUID(uuid_person))
             )
-            int_id = result.scalar_one_or_none()
-            if not int_id:
+            id_person = result.scalar_one_or_none()
+            if not id_person:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
 
             session.add(Address(
-                id_person=int_id,
+                id_person=id_person,
                 type_address=dto.type_address,
                 postal_code=dto.postal_code,
                 key_state=dto.key_state,
