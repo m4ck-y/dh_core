@@ -31,6 +31,7 @@ from app.shared.database.postgres import engine
 from app.shared.utils.logger import logger
 from app.contexts.people.infrastructure.api.v1.router import (
     people_router, contact_router, identity_router, social_router,
+    address_router, validation_router,
 )
 
 
@@ -59,17 +60,21 @@ app = FastAPI(
     lifespan=lifespan,
     openapi_tags=[
         {"name": "Health", "description": "Service health check."},
-        {"name": "People", "description": "Person CRUD, address, status updates."},
+        {"name": "People", "description": "Person CRUD and status updates."},
+        {"name": "Address", "description": "Address management for persons."},
         {"name": "Contact", "description": "Email and phone management for persons."},
         {"name": "Identity", "description": "Personal identifiers (CURP, RFC, etc.)."},
         {"name": "Social", "description": "Emergency contacts and social links."},
+        {"name": "Validation", "description": "Registration field conflict checks."},
     ],
 )
 
 app.include_router(people_router, prefix="/v1")
+app.include_router(address_router, prefix="/v1")
 app.include_router(contact_router, prefix="/v1")
 app.include_router(identity_router, prefix="/v1")
 app.include_router(social_router, prefix="/v1")
+app.include_router(validation_router, prefix="/v1")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 

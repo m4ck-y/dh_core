@@ -49,5 +49,7 @@ class CreatePersonUseCase:
             uuid=uuid_person,
             first_name=dto.first_name,
             last_name=dto.last_name,
+            second_last_name=dto.second_last_name,
+            type_gender=dto.type_gender,
             verification_status=EVerificationStatus.PENDING,
         )

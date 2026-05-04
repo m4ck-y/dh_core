@@ -28,5 +28,7 @@ class GetPersonUseCase:
             uuid=person.uuid,
             first_name=person.first_name,
             last_name=person.last_name,
+            second_last_name=person.second_last_name,
+            type_gender=person.type_gender,
             verification_status=person.verification_status,
         )

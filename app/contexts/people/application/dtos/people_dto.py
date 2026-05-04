@@ -33,6 +33,8 @@ class PersonResponseDTO(BaseModel):
     uuid: UUID = Field(..., description="Person UUID.", examples=["550e8400-e29b-41d4-a716-446655440000"])
     first_name: Optional[str] = Field(None, description="Given name(s).", examples=["Juan"])
     last_name: Optional[str] = Field(None, description="First last name.", examples=["Perez"])
+    second_last_name: Optional[str] = Field(None, description="Second last name.")
+    type_gender: Optional[str] = Field(None, description="Gender identity.")
     verification_status: EVerificationStatus = Field(..., description="Identity verification status.")
 
 
@@ -48,6 +50,14 @@ class CreateAddressDTO(BaseModel):
 
 class UpdatePersonStatusDTO(BaseModel):
     verification_status: EVerificationStatus = Field(..., description="New verification status.")
+
+
+class UpdatePersonDTO(BaseModel):
+    first_name: Optional[str] = Field(None, description="Updated first name.", examples=["Juan"])
+    last_name: Optional[str] = Field(None, description="Updated last name.", examples=["Perez"])
+    second_last_name: Optional[str] = Field(None, description="Updated second last name.")
+    type_gender: Optional[str] = Field(None, description="Updated gender identity.")
+    verification_status: Optional[EVerificationStatus] = Field(None, description="Updated verification status.")
 
 
 class PersonExistsResponseDTO(BaseModel):
@@ -100,9 +110,56 @@ class CreateEmergencyContactDTO(BaseModel):
     notes: Optional[str] = Field(None, description="Optional notes.")
 
 
+class UpdateAddressDTO(BaseModel):
+    postal_code: Optional[str] = Field(None)
+    key_state: Optional[str] = Field(None)
+    key_municipality: Optional[str] = Field(None)
+    key_colony: Optional[str] = Field(None)
+    address: Optional[str] = Field(None)
+    address_complement: Optional[str] = Field(None)
+    type_address: Optional[EAddressType] = Field(None)
+
+
+class AddressResponseDTO(BaseModel):
+    uuid: UUID = Field(..., description="Address UUID.")
+    type_address: EAddressType
+    postal_code: Optional[str] = Field(None)
+    key_state: Optional[str] = Field(None)
+    key_municipality: Optional[str] = Field(None)
+    key_colony: Optional[str] = Field(None)
+    address: Optional[str] = Field(None)
+    address_complement: Optional[str] = Field(None)
+
+
+class UpdateEmailDTO(BaseModel):
+    type_email: Optional[EEmailType] = Field(None, description="Updated email type.")
+
+
+class UpdatePhoneDTO(BaseModel):
+    code: Optional[str] = Field(None, description="Updated country code.", examples=["+52"])
+    number: Optional[str] = Field(None, description="Updated phone number.", examples=["5512345678"])
+    type_phone: Optional[EPhoneType] = Field(None, description="Updated phone type.")
+
+
+class UpdateIdentifierDTO(BaseModel):
+    id_identifier_type: Optional[EIdentifierType] = Field(None)
+    identifier_value: Optional[str] = Field(None, examples=["PEGJ900515HJCRRC09"])
+
+
+class UpdateEmergencyContactDTO(BaseModel):
+    first_name: Optional[str] = Field(None)
+    last_name: Optional[str] = Field(None)
+    phone_number: Optional[str] = Field(None)
+    email: Optional[str] = Field(None)
+    relationship_type: Optional[ERelationshipContact] = Field(None)
+    notes: Optional[str] = Field(None)
+
+
 class EmergencyContactResponseDTO(BaseModel):
     uuid: UUID = Field(..., description="Contact UUID.")
     first_name: Optional[str] = Field(None, description="Contact first name.")
     last_name: Optional[str] = Field(None, description="Contact last name.")
     phone_number: Optional[str] = Field(None, description="Contact phone.")
+    email: Optional[str] = Field(None)
     relationship_type: ERelationshipContact = Field(..., description="Relationship type.")
+    notes: Optional[str] = Field(None)

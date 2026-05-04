@@ -4,7 +4,7 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from dh_shared import Person, Email
-from app.contexts.people.application.dtos.people_dto import CreateEmailDTO, EmailResponseDTO
+from app.contexts.people.application.dtos.people_dto import CreateEmailDTO, EmailResponseDTO, UpdateEmailDTO
 from app.shared.database.postgres import AsyncSessionLocal
 from app.shared.utils.logger import logger
 
@@ -35,3 +35,39 @@ class ListEmailsUseCase:
             result = await session.execute(select(Email).where(Email.id_person == id_person))
             emails = result.scalars().all()
             return [EmailResponseDTO(uuid=e.uuid, email=e.email, type_email=e.type_email) for e in emails]
+
+
+class UpdateEmailUseCase:
+    async def execute(self, uuid_person: str, dto: UpdateEmailDTO) -> EmailResponseDTO:
+        async with AsyncSessionLocal() as session:
+            person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
+            id_person = person.scalar_one_or_none()
+            if not id_person:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
+            result = await session.execute(select(Email).where(Email.id_person == id_person).limit(1))
+            email = result.scalar_one_or_none()
+            if not email:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+            if dto.type_email is not None:
+                email.type_email = dto.type_email
+            await session.flush()
+            await session.refresh(email)
+            await session.commit()
+        await logger.event("email_updated", uuid_person=uuid_person)
+        return EmailResponseDTO(uuid=email.uuid, email=email.email, type_email=email.type_email)
+
+
+class DeleteEmailUseCase:
+    async def execute(self, uuid_person: str) -> None:
+        async with AsyncSessionLocal() as session:
+            person = await session.execute(select(Person.id).where(Person.uuid == uuid.UUID(uuid_person)))
+            id_person = person.scalar_one_or_none()
+            if not id_person:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Person not found.")
+            result = await session.execute(select(Email).where(Email.id_person == id_person).limit(1))
+            email = result.scalar_one_or_none()
+            if not email:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+            await session.delete(email)
+            await session.commit()
+        await logger.event("email_deleted", uuid_person=uuid_person)
