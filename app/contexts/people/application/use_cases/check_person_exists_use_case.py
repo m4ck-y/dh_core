@@ -5,7 +5,7 @@ from typing import Optional
 from app.contexts.people.application.dtos.people_dto import PersonExistsResponseDTO
 from app.shared.database.postgres import AsyncSessionLocal
 from app.shared.utils.logger import logger
-from dh_shared.queries.person import check_conflicts, find_person_by_email_or_identifier
+from dh_shared.queries import check_conflicts, find_person_by_email_or_identifier
 
 
 class CheckPersonExistsUseCase:
