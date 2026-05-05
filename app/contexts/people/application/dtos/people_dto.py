@@ -9,6 +9,12 @@ from dh_shared.enums import (
 )
 
 
+class PersonalIdentifierInputDTO(BaseModel):
+    """Sub-object for personal identifier input. type defaults to NATIONAL_ID (CURP)."""
+    type: EIdentifierType = Field(default=EIdentifierType.NATIONAL_ID, description="Identifier type.", examples=["NATIONAL_ID"])
+    value: str = Field(..., description="Identifier value (CURP, NSS, fiscal number).", examples=["PEGJ900515HJCRRC09"])
+
+
 class CreatePersonDTO(BaseModel):
     email: EmailStr = Field(..., description="Email of the person.", examples=["user@example.com"])
     phone_code: str = Field(..., description="Country code.", examples=["+52"])
@@ -21,7 +27,7 @@ class CreatePersonDTO(BaseModel):
     key_birth_state: Optional[str] = Field(None, description="State code of birth.", examples=["CMX"])
     type_gender: Optional[str] = Field(None, description="Gender identity.", examples=["MASCULINO"])
     key_nationality: Optional[str] = Field(None, description="Nationality code.", examples=["MX"])
-    curp: Optional[str] = Field(None, description="CURP (18 chars).", examples=["PEGJ900515HJCRRC09"])
+    personal_identifier: Optional[PersonalIdentifierInputDTO] = Field(None, description="Optional personal identifier (CURP, NSS, fiscal number).")
 
     @field_validator("email", mode="before")
     @classmethod

@@ -19,7 +19,7 @@ Protocol: **HTTP/REST**
 #### Create
 - `POST /people` — Create person with email, phone, birth info.
 - **Success**: `201`
-- **Body**: `{ "email", "first_name", "last_name", "birth_date", "key_birth_country", "phone_code", "phone_number", "curp?" }`
+- **Body**: `{ "email", "first_name", "last_name", "birth_date", "key_birth_country", "phone_code", "phone_number", "personal_identifier?": {"type"?: "NATIONAL_ID", "value": "..."} }`
 
 #### Update
 - `PATCH /people/{uuid_person}` — Update mutable fields.

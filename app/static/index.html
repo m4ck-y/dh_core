@@ -35,6 +35,8 @@
 <input type="text" id="c-email" placeholder="email" style="width:100px">
 <input type="text" id="c-fname" placeholder="first_name" style="width:80px">
 <input type="text" id="c-lname" placeholder="last_name" style="width:80px">
+<select id="pi-type" style="width:100px"><option value="NATIONAL_ID">NATIONAL_ID</option><option value="FISCAL_ID">FISCAL_ID</option><option value="SOCIAL_SECURITY_ID">SOCIAL_SECURITY_ID</option></select>
+<input type="text" id="pi-value" placeholder="identifier value" style="width:130px">
 <button data-verb="POST" id="create-btn">CREATE</button></div></div>
 <div class="endpoint-row"><span class="verb patch">PATCH</span><span class="path">/v1/people/<b>{uuid}</b></span><div class="controls">
 <input type="text" id="upd-uuid" placeholder="uuid_person" style="width:100px">

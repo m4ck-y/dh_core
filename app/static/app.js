@@ -75,6 +75,10 @@ class CoreUI {
         first_name: document.getElementById('c-fname').value || 'Test',
         last_name: document.getElementById('c-lname').value || 'User',
         birth_date: '1990-01-01', key_birth_country: 'MX',
+        personal_identifier: (() => {
+          const val = document.getElementById('pi-value').value;
+          return val ? { type: document.getElementById('pi-type').value, value: val } : null;
+        })(),
       };
       if (!dto.email) return this.say('Email required.', '#ff4444');
       this._mutate('post', 'create-btn', 'out-person', '/v1/people', dto, 'Person');

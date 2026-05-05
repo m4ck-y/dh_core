@@ -34,11 +34,11 @@ class CreatePersonUseCase:
             if dto.key_nationality:
                 session.add(LegalInfo(id_person=id_person, key_nationality=dto.key_nationality))
 
-            if dto.curp:
+            if dto.personal_identifier and dto.personal_identifier.value:
                 session.add(PersonalIdentifier(
                     id_person=id_person,
-                    id_identifier_type=EIdentifierType.NATIONAL_ID,
-                    identifier_value=dto.curp,
+                    id_identifier_type=dto.personal_identifier.type,
+                    identifier_value=dto.personal_identifier.value,
                 ))
 
             await session.commit()
