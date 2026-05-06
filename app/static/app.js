@@ -69,18 +69,23 @@ class CoreUI {
       this._loadList('get-btn', 'out-person', `/v1/people/${uuid}`);
     };
     document.getElementById('create-btn').onclick = () => {
+      const emailAddr = document.getElementById('c-email').value;
+      const phoneCode = document.getElementById('c-phone-code').value || '+52';
+      const phoneNum = document.getElementById('c-phone-num').value || '5500000000';
+      const fname = document.getElementById('c-fname').value || 'Test';
+      const lname = document.getElementById('c-lname').value || 'User';
+      const birthDate = document.getElementById('c-birth').value || '1990-01-01';
+      const birthCountry = document.getElementById('c-birth-country').value || 'MX';
+      const piVal = document.getElementById('pi-value').value;
       const dto = {
-        email: document.getElementById('c-email').value,
-        phone_code: '+52', phone_number: '5500000000',
-        first_name: document.getElementById('c-fname').value || 'Test',
-        last_name: document.getElementById('c-lname').value || 'User',
-        birth_date: '1990-01-01', key_birth_country: 'MX',
-        personal_identifier: (() => {
-          const val = document.getElementById('pi-value').value;
-          return val ? { type: document.getElementById('pi-type').value, value: val } : null;
-        })(),
+        email: { address: emailAddr, type: 'PERSONAL' },
+        phone: { code: phoneCode, number: phoneNum, type: 'MOBILE' },
+        first_name: fname,
+        last_name: lname,
+        birth: { date: birthDate, key_country: birthCountry },
+        personal_identifier: piVal ? { type: document.getElementById('pi-type').value, value: piVal } : null,
       };
-      if (!dto.email) return this.say('Email required.', '#ff4444');
+      if (!emailAddr) return this.say('Email required.', '#ff4444');
       this._mutate('post', 'create-btn', 'out-person', '/v1/people', dto, 'Person');
     };
     document.getElementById('update-btn').onclick = () => {

@@ -1,5 +1,5 @@
 from dh_shared import Person, Email, Phone, Birth, LegalInfo, PersonalIdentifier
-from dh_shared import EEmailType, EIdentifierType, EPhoneType, EVerificationStatus
+from dh_shared import EIdentifierType, EVerificationStatus
 
 from app.contexts.people.application.dtos.people_dto import CreatePersonDTO, PersonResponseDTO
 from app.shared.database.postgres import AsyncSessionLocal
@@ -22,13 +22,13 @@ class CreatePersonUseCase:
             id_person = person.id
             uuid_person = person.uuid
 
-            session.add(Email(id_person=id_person, email=dto.email, type_email=EEmailType.PERSONAL))
-            session.add(Phone(id_person=id_person, code=dto.phone_code, number=dto.phone_number, type_phone=EPhoneType.MOBILE))
+            session.add(Email(id_person=id_person, email=dto.email.address, type_email=dto.email.type))
+            session.add(Phone(id_person=id_person, code=dto.phone.code, number=dto.phone.number, type_phone=dto.phone.type))
             session.add(Birth(
                 id_person=id_person,
-                birth_date=dto.birth_date,
-                key_birth_country=dto.key_birth_country,
-                key_state_birth=dto.key_birth_state,
+                birth_date=dto.birth.date,
+                key_birth_country=dto.birth.key_country,
+                key_state_birth=dto.birth.key_state,
             ))
 
             if dto.key_nationality:

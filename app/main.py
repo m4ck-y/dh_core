@@ -17,14 +17,14 @@ Owns the `people` and `relationships` schemas.
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import text
 
-from dh_shared.models.people import PeopleBase
-from dh_shared.models.expedient import ExpedientBase
+from dh_shared.base import init_schemas
+
 import dh_shared.models.people      # noqa
-import dh_shared.models.expedient   # noqa
+import dh_shared.models.storage     # noqa
 
 from app.settings.config import settings
 from app.shared.database.postgres import engine
@@ -41,13 +41,11 @@ async def lifespan(app: FastAPI):
     await logger.info("Starting dh_core...", event="app.startup")
     try:
         async with engine.begin() as conn:
-            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS expedient"))
-            await conn.execute(text("CREATE SCHEMA IF NOT EXISTS people"))
-            await conn.run_sync(ExpedientBase.metadata.create_all)
-            await conn.run_sync(PeopleBase.metadata.create_all)
+            await init_schemas(conn)
         await logger.info("Schemas synced.", event="app.startup.done")
     except Exception as e:
         await logger.error(f"DB unavailable: {e}", event="app.startup.error")
+        raise
     yield
     await engine.dispose()
     await logger.info("dh_core stopped.", event="app.shutdown")
@@ -58,6 +56,7 @@ app = FastAPI(
     description=__doc__,
     version=settings.VERSION,
     lifespan=lifespan,
+    root_path=settings.ROOT_PATH,
     openapi_tags=[
         {"name": "Health", "description": "Service health check."},
         {"name": "People", "description": "Person CRUD and status updates."},
@@ -67,6 +66,14 @@ app = FastAPI(
         {"name": "Social", "description": "Emergency contacts and social links."},
         {"name": "Validation", "description": "Registration field conflict checks."},
     ],
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(people_router, prefix="/v1")

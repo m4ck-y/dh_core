@@ -32,9 +32,15 @@
 <div class="endpoint-row"><span class="verb get">GET</span><span class="path">/v1/people/<b>{uuid}</b></span><div class="controls">
 <input type="text" id="get-uuid" placeholder="uuid_person" style="width:130px"><button data-verb="GET" id="get-btn">FETCH</button></div></div>
 <div class="endpoint-row"><span class="verb post">POST</span><span class="path">/v1/people</span><div class="controls">
-<input type="text" id="c-email" placeholder="email" style="width:100px">
+<input type="text" id="c-email" placeholder="email" style="width:130px">
+<input type="text" id="c-phone-code" value="+52" style="width:35px">
+<input type="text" id="c-phone-num" value="5500000000" style="width:80px"></div></div>
+<div class="endpoint-row"><span class="verb"></span><span class="path" style="color:transparent">/v1/people</span><div class="controls">
 <input type="text" id="c-fname" placeholder="first_name" style="width:80px">
 <input type="text" id="c-lname" placeholder="last_name" style="width:80px">
+<input type="date" id="c-birth" value="1990-01-01" style="width:100px">
+<input type="text" id="c-birth-country" value="MX" style="width:35px"></div></div>
+<div class="endpoint-row"><span class="verb"></span><span class="path" style="color:transparent">/v1/people</span><div class="controls">
 <select id="pi-type" style="width:100px"><option value="NATIONAL_ID">NATIONAL_ID</option><option value="FISCAL_ID">FISCAL_ID</option><option value="SOCIAL_SECURITY_ID">SOCIAL_SECURITY_ID</option></select>
 <input type="text" id="pi-value" placeholder="identifier value" style="width:130px">
 <button data-verb="POST" id="create-btn">CREATE</button></div></div>

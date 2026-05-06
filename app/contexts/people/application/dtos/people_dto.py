@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as date_t
 from typing import Optional
 from uuid import UUID
 
@@ -9,30 +9,49 @@ from dh_shared.enums import (
 )
 
 
+class EmailInputDTO(BaseModel):
+    address: EmailStr = Field(..., description="Email address.", examples=["user@example.com"])
+    type: EEmailType = Field(default=EEmailType.PERSONAL, description="Email type.", examples=["PERSONAL"])
+
+    @field_validator("address", mode="before")
+    @classmethod
+    def lowercase_address(cls, v: str) -> str:
+        return v.strip().lower()
+
+
+class PhoneInputDTO(BaseModel):
+    code: str = Field(..., description="Country code.", examples=["+52"])
+    number: str = Field(..., description="Phone number.", examples=["5512345678"])
+    type: EPhoneType = Field(default=EPhoneType.MOBILE, description="Phone type.", examples=["MOBILE"])
+
+
+class BirthInputDTO(BaseModel):
+    date: date_t = Field(..., description="Date of birth.", examples=["1990-05-15"])
+    key_country: str = Field(..., description="Country code of birth.", examples=["MX"])
+    key_state: Optional[str] = Field(None, description="State code of birth.", examples=["CMX"])
+
+
 class PersonalIdentifierInputDTO(BaseModel):
     """Sub-object for personal identifier input. type defaults to NATIONAL_ID (CURP)."""
     type: EIdentifierType = Field(default=EIdentifierType.NATIONAL_ID, description="Identifier type.", examples=["NATIONAL_ID"])
     value: str = Field(..., description="Identifier value (CURP, NSS, fiscal number).", examples=["PEGJ900515HJCRRC09"])
 
+    @field_validator("value", mode="before")
+    @classmethod
+    def uppercase_value(cls, v: str) -> str:
+        return v.strip().upper()
+
 
 class CreatePersonDTO(BaseModel):
-    email: EmailStr = Field(..., description="Email of the person.", examples=["user@example.com"])
-    phone_code: str = Field(..., description="Country code.", examples=["+52"])
-    phone_number: str = Field(..., description="Phone number.", examples=["5512345678"])
+    email: EmailInputDTO = Field(..., description="Email sub-object.")
+    phone: PhoneInputDTO = Field(..., description="Phone sub-object.")
     first_name: str = Field(..., description="Given name(s).", examples=["Juan"])
     last_name: str = Field(..., description="First last name.", examples=["Perez"])
     second_last_name: Optional[str] = Field(None, description="Second last name.", examples=["Garcia"])
-    birth_date: date = Field(..., description="Date of birth.", examples=["1990-05-15"])
-    key_birth_country: str = Field(..., description="Country code of birth.", examples=["MX"])
-    key_birth_state: Optional[str] = Field(None, description="State code of birth.", examples=["CMX"])
+    birth: BirthInputDTO = Field(..., description="Birth sub-object.")
     type_gender: Optional[str] = Field(None, description="Gender identity.", examples=["MASCULINO"])
     key_nationality: Optional[str] = Field(None, description="Nationality code.", examples=["MX"])
     personal_identifier: Optional[PersonalIdentifierInputDTO] = Field(None, description="Optional personal identifier (CURP, NSS, fiscal number).")
-
-    @field_validator("email", mode="before")
-    @classmethod
-    def lowercase_email(cls, v: str) -> str:
-        return v.strip().lower()
 
 
 class PersonResponseDTO(BaseModel):
