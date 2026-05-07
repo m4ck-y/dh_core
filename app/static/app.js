@@ -1,12 +1,15 @@
+function $(id) { return document.getElementById(id); }
+function _v(id) { const e = $(id); return e ? e.value : ''; }
+
 class APIClient {
-  constructor(base = '') { this.base = base; }
+  constructor(base) { this.base = base || ''; }
   async req(method, p, body) {
-    const opts = { method, headers: {} };
-    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-    const r = await fetch(`${this.base}${p}`, opts);
-    const text = await r.text();
-    try { return { ok: r.ok, status: r.status, data: JSON.parse(text) }; }
-    catch { return { ok: r.ok, status: r.status, data: text }; }
+    const o = { method, headers: {} };
+    if (body) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(body); }
+    const r = await fetch(this.base + p, o);
+    const t = await r.text();
+    try { return { ok: r.ok, status: r.status, data: JSON.parse(t) }; }
+    catch { return { ok: r.ok, status: r.status, data: t }; }
   }
   get(p) { return this.req('GET', p); }
   post(p, b) { return this.req('POST', p, b); }
@@ -14,249 +17,446 @@ class APIClient {
   del(p) { return this.req('DELETE', p); }
 }
 
+const _EP_MAP = {
+  person:   { add: ['post','POST','/v1/people'],                             edit: ['patch','PATCH','/v1/people/{uuid_person}'],                    delete: ['delete','DELETE','/v1/people/{uuid_person}'] },
+  address:  { add: ['post','POST','/v1/people/{uuid_person}/addresses'],     edit: ['patch','PATCH','/v1/people/addresses/{uuid_address}'],         delete: ['delete','DELETE','/v1/people/addresses/{uuid_address}'] },
+  email:    { add: ['post','POST','/v1/people/{uuid_person}/emails'],        edit: ['patch','PATCH','/v1/people/emails/{uuid_email}'],              delete: ['delete','DELETE','/v1/people/emails/{uuid_email}'] },
+  phone:    { add: ['post','POST','/v1/people/{uuid_person}/phones'],        edit: ['patch','PATCH','/v1/people/phones/{uuid_phone}'],              delete: ['delete','DELETE','/v1/people/phones/{uuid_phone}'] },
+  identity: { add: ['post','POST','/v1/people/{uuid_person}/identifiers'],   edit: ['patch','PATCH','/v1/people/identifiers/{uuid_identifier}'],    delete: ['delete','DELETE','/v1/people/identifiers/{uuid_identifier}'] },
+  social:   { add: ['post','POST','/v1/people/{uuid_person}/emergency-contacts'], edit: ['patch','PATCH','/v1/people/emergency-contacts/{uuid_emergency}'], delete: ['delete','DELETE','/v1/people/emergency-contacts/{uuid_emergency}'] },
+};
+
 class CoreUI {
   constructor() {
-    this.msg = document.getElementById('msg');
+    this.msg = $('msg');
     this.api = new APIClient();
-    this._bindNav();
-    this._bindPerson();
-    this._bindAddress();
-    this._bindContact();
-    this._bindIdentity();
-    this._bindSocial();
-    this._bindValidation();
+    this._tab = null;
+    this._mode = null;
+    this._nav();
+    this._person();
+    this._address();
+    this._email();
+    this._phone();
+    this._identity();
+    this._social();
+    this._validation();
   }
-  say(t, c = '#00ff88') { this.msg.textContent = t; this.msg.style.color = c; }
+  say(t, c) { this.msg.textContent = t; this.msg.style.color = c || '#00ff88'; }
 
-  _bindNav() {
+  _nav() {
     document.querySelectorAll('.topbar nav button').forEach(b => b.onclick = () => {
       document.querySelectorAll('.topbar nav button').forEach(x => x.classList.remove('active'));
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       b.classList.add('active');
-      document.getElementById('sec-' + b.dataset.section).classList.add('active');
+      $('sec-' + b.dataset.section).classList.add('active');
     });
   }
 
-  async _loadList(btnId, outId, path) {
-    const btn = document.getElementById(btnId);
-    const pre = document.getElementById(outId);
-    const orig = btn.textContent;
-    btn.textContent = '...'; pre.textContent = 'Loading...';
-    const res = await this.api.get(path);
-    if (res.ok) { const items = res.data.data || []; pre.textContent = JSON.stringify(items, null, 2); this.say(`${Array.isArray(items) ? items.length : 1} item(s).`); }
-    else { pre.textContent = `ERROR ${res.status}:\n${JSON.stringify(res.data, null, 2)}`; this.say(`Error ${res.status}`, '#ff4444'); }
-    btn.textContent = orig;
+  _open(mode, tab, fetchFn) {
+    this._mode = mode;
+    this._tab = tab;
+    const pnl = $('side-panel'), ovl = $('overlay');
+    const close = () => { ovl.classList.remove('show'); pnl.classList.remove('show'); };
+    ovl.onclick = close;
+    $('panel-close').onclick = close;
+    $(tab + '-cancel').onclick = close;
+
+    // Show only the current tab's content wrap, hide the rest
+    ['person', 'address', 'email', 'phone', 'identity', 'social'].forEach(t => {
+      const w = $(t + '-panel-wrap');
+      if (w) w.style.display = (t === tab) ? 'block' : 'none';
+    });
+
+    $('panel-title').textContent = tab.toUpperCase() + ' — MANAGE';
+
+    const ep = _EP_MAP[tab]?.[mode];
+    const footer = $(tab + '-endpoint-footer');
+    if (footer && ep) footer.innerHTML = `<span class="verb ${ep[0]}">${ep[1]}</span><span class="path">${ep[2]}</span>`;
+
+    $(tab + '-mode').style.display = 'block';
+    $(tab + '-mode').style.color = {add:'var(--color-green)',edit:'var(--color-amber)',delete:'var(--color-red)'}[mode];
+    $(tab + '-mode').textContent = 'MODE: ' + mode.toUpperCase();
+
+    const editSec = $(tab + '-edit-section');
+    if (editSec) editSec.style.display = (mode === 'add') ? 'none' : 'block';
+    $(tab + '-save').textContent = {add:'SAVE',edit:'UPDATE',delete:'DELETE'}[mode];
+
+    const body = $(tab + '-panel-body');
+    body.querySelectorAll('input, select').forEach(i => {
+      i.value = i.getAttribute('data-init') || '';
+      i.readOnly = (mode === 'delete');
+    });
+    const uuidInp = $(tab + '-edit-uuid');
+    if (uuidInp) uuidInp.value = '';
+
+    pnl.classList.add('show');
+    ovl.classList.add('show');
   }
 
-  async _mutate(method, btnId, outId, path, dto, label) {
-    const btn = document.getElementById(btnId);
-    const pre = document.getElementById(outId);
-    const orig = btn.textContent;
-    btn.textContent = '...';
-    const res = await this.api[method](path, dto);
-    if (res.ok) { pre.textContent = res.status === 204 ? 'No content.' : JSON.stringify(res.data, null, 2); this.say(`${label} OK.`); }
-    else { pre.textContent = `ERROR ${res.status}:\n${JSON.stringify(res.data, null, 2)}`; this.say(`${label} failed`, '#ff4444'); }
-    btn.textContent = orig;
+  _out(preId, res, label) {
+    const pre = $(preId);
+    if (res.ok) {
+      const items = res.data.data !== undefined ? res.data.data : res.data;
+      pre.textContent = res.status === 204 ? 'No content.' : JSON.stringify(items, null, 2);
+      this.say(label + ' OK.');
+    } else {
+      pre.textContent = `ERROR ${res.status}:\n${JSON.stringify(res.data, null, 2)}`;
+      this.say(label + ' failed', '#ff4444');
+    }
   }
 
-  _bindPerson() {
-    document.getElementById('list-btn').onclick = () => {
-      this._loadList('list-btn', 'out-person', '/v1/people');
+  _done(ok, preId, label) {
+    $(this._tab + '-save').textContent = '...';
+    if (!ok) $(this._tab + '-save').textContent = 'ERROR';
+  }
+
+  // ── PERSON ──────────────────────────────────────────────────
+  _person() {
+    const T = 'person';
+    $(T + '-list-btn').onclick = () => this.api.get('/v1/people').then(r => this._out('out-' + T, r, 'List'));
+    $(T + '-fetch-btn').onclick = () => {
+      const u = _v(T + '-fetch-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u).then(r => this._out('out-' + T, r, 'Fetch'));
     };
-    document.getElementById('get-btn').onclick = () => {
-      const uuid = document.getElementById('get-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._loadList('get-btn', 'out-person', `/v1/people/${uuid}`);
+    $(T + '-add-btn').onclick = () => this._open('add', T, null);
+    $(T + '-edit-btn').onclick = () => this._open('edit', T, null);
+    $(T + '-delete-btn').onclick = () => this._open('delete', T, null);
+
+    $(T + '-edit-fetch-btn').onclick = () => {
+      const u = _v(T + '-edit-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u).then(r => {
+        if (!r.ok) return this._out('out-' + T, r, 'Fetch');
+        const d = (r.data.data || r.data);
+        $('p-email').value = d.email?.address || '';
+        $('p-fname').value = d.first_name || '';
+        $('p-lname').value = d.last_name || '';
+        $('p-phone-code').value = d.phone?.code || '+52';
+        $('p-phone-num').value = d.phone?.number || '';
+        $('p-birth').value = d.birth?.date || '1990-01-01';
+        $('p-birth-country').value = d.birth?.key_country || 'MX';
+        if (d.personal_identifier) {
+          $('p-id-type').value = d.personal_identifier.type || 'NATIONAL_ID';
+          $('p-id-value').value = d.personal_identifier.value || '';
+        }
+        this.say('Data loaded.');
+      });
     };
-    document.getElementById('create-btn').onclick = () => {
-      const emailAddr = document.getElementById('c-email').value;
-      const phoneCode = document.getElementById('c-phone-code').value || '+52';
-      const phoneNum = document.getElementById('c-phone-num').value || '5500000000';
-      const fname = document.getElementById('c-fname').value || 'Test';
-      const lname = document.getElementById('c-lname').value || 'User';
-      const birthDate = document.getElementById('c-birth').value || '1990-01-01';
-      const birthCountry = document.getElementById('c-birth-country').value || 'MX';
-      const piVal = document.getElementById('pi-value').value;
+
+    $(T + '-save').onclick = async () => {
+      const m = this._mode;
+      if (m === 'delete') {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('Fetch UUID first.', '#ff4444');
+        if (!confirm('Delete person ' + u + '?')) return;
+        const r = await this.api.del('/v1/people/' + u);
+        this._out('out-' + T, r, 'Delete');
+        return $('panel-close').click();
+      }
+      const email = _v('p-email');
+      if (!email) return this.say('Email required.', '#ff4444');
       const dto = {
-        email: { address: emailAddr, type: 'PERSONAL' },
-        phone: { code: phoneCode, number: phoneNum, type: 'MOBILE' },
-        first_name: fname,
-        last_name: lname,
-        birth: { date: birthDate, key_country: birthCountry },
-        personal_identifier: piVal ? { type: document.getElementById('pi-type').value, value: piVal } : null,
+        email: { address: email, type: 'PERSONAL' },
+        phone: { code: _v('p-phone-code') || '+52', number: _v('p-phone-num') || '5500000000', type: 'MOBILE' },
+        first_name: _v('p-fname') || 'Test', last_name: _v('p-lname') || 'User',
+        birth: { date: $('p-birth').value || '1990-01-01', key_country: _v('p-birth-country') || 'MX' },
       };
-      if (!emailAddr) return this.say('Email required.', '#ff4444');
-      this._mutate('post', 'create-btn', 'out-person', '/v1/people', dto, 'Person');
-    };
-    document.getElementById('update-btn').onclick = () => {
-      const uuid = document.getElementById('upd-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      const dto = {};
-      const fn = document.getElementById('upd-fname').value; if (fn) dto.first_name = fn;
-      const ln = document.getElementById('upd-lname').value; if (ln) dto.last_name = ln;
-      this._mutate('patch', 'update-btn', 'out-person', `/v1/people/${uuid}`, dto, 'Person');
-    };
-    document.getElementById('status-btn').onclick = () => {
-      const uuid = document.getElementById('stat-uuid').value;
-      const status = document.getElementById('stat-val').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('patch', 'status-btn', 'out-person', `/v1/people/${uuid}/status`, { verification_status: status }, 'Status');
-    };
-    document.getElementById('delete-btn').onclick = () => {
-      const uuid = document.getElementById('del-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('del', 'delete-btn', 'out-person', `/v1/people/${uuid}`, null, 'Delete');
+      const pv = _v('p-id-value');
+      if (pv) dto.personal_identifier = { type: _v('p-id-type') || 'NATIONAL_ID', value: pv };
+      if (m === 'add') {
+        const r = await this.api.post('/v1/people', dto);
+        this._out('out-' + T, r, 'Create');
+        $('panel-close').click();
+      } else {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('Fetch UUID first.', '#ff4444');
+        const r = await this.api.patch('/v1/people/' + u, dto);
+        this._out('out-' + T, r, 'Update');
+        $('panel-close').click();
+      }
     };
   }
 
-  _bindAddress() {
-    document.getElementById('addr-list-btn').onclick = () => {
-      const uuid = document.getElementById('addr-list-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._loadList('addr-list-btn', 'out-address', `/v1/people/${uuid}/address`);
+  // ── ADDRESS ─────────────────────────────────────────────────
+  _address() {
+    const T = 'address';
+    $(T + '-fetch-btn').onclick = () => {
+      const u = _v(T + '-fetch-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u + '/address').then(r => this._out('out-' + T, r, 'Fetch'));
     };
-    document.getElementById('addr-create-btn').onclick = () => {
-      const uuid = document.getElementById('addr-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
+    $(T + '-add-btn').onclick = () => this._open('add', T);
+    $(T + '-edit-btn').onclick = () => this._open('edit', T);
+    $(T + '-delete-btn').onclick = () => this._open('delete', T);
+
+    $(T + '-edit-fetch-btn').onclick = () => {
+      const u = _v(T + '-edit-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/addresses/' + u).then(r => {
+        if (!r.ok) return this._out('out-' + T, r, 'Fetch');
+        const d = r.data.data || r.data;
+        $('a-street').value = d.address || '';
+        $('a-zip').value = d.postal_code || '';
+        $('a-state').value = d.key_state || 'CMX';
+        $('a-mun').value = d.key_municipality || '016';
+        this.say('Data loaded.');
+      });
+    };
+
+    $(T + '-save').onclick = async () => {
+      const m = this._mode;
+      if (m === 'delete') {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID address required.', '#ff4444');
+        if (!confirm('Delete address ' + u + '?')) return;
+        const r = await this.api.del('/v1/people/addresses/' + u);
+        this._out('out-' + T, r, 'Delete');
+        return $('panel-close').click();
+      }
+      const dto = { address: _v('a-street') || 'Test Street 123', postal_code: _v('a-zip') || '06600', key_state: _v('a-state') || 'CMX', key_municipality: _v('a-mun') || '016' };
+      if (m === 'add') {
+        const u = _v(T + '-fetch-uuid');
+        if (!u) return this.say('Enter person UUID.', '#ff4444');
+        const r = await this.api.post('/v1/people/' + u + '/addresses', dto);
+        this._out('out-' + T, r, 'Create');
+        $('panel-close').click();
+      } else {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID address required.', '#ff4444');
+        const r = await this.api.patch('/v1/people/addresses/' + u, dto);
+        this._out('out-' + T, r, 'Update');
+        $('panel-close').click();
+      }
+    };
+  }
+
+  // ── EMAIL ───────────────────────────────────────────────────
+  _email() {
+    const T = 'email';
+    $(T + '-fetch-btn').onclick = () => {
+      const u = _v(T + '-fetch-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u + '/emails').then(r => this._out('out-' + T, r, 'Fetch emails'));
+    };
+    $(T + '-add-btn').onclick = () => this._open('add', T);
+    $(T + '-edit-btn').onclick = () => this._open('edit', T);
+    $(T + '-delete-btn').onclick = () => this._open('delete', T);
+
+    $(T + '-edit-fetch-btn').onclick = () => {
+      const u = _v(T + '-edit-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/emails/' + u).then(r => {
+        if (!r.ok) return this._out('out-' + T, r, 'Fetch');
+        const d = r.data.data || r.data;
+        $('em-addr').value = d.email || '';
+        $('em-type').value = d.type_email || 'PERSONAL';
+        this.say('Data loaded.');
+      });
+    };
+
+    $(T + '-save').onclick = async () => {
+      const m = this._mode;
+      if (m === 'delete') {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID email required.', '#ff4444');
+        if (!confirm('Delete email ' + u + '?')) return;
+        const r = await this.api.del('/v1/people/emails/' + u);
+        this._out('out-' + T, r, 'Delete');
+        return $('panel-close').click();
+      }
+      const addr = _v('em-addr');
+      if (!addr) return this.say('Email required.', '#ff4444');
+      const dto = { email: addr, type_email: _v('em-type') || 'PERSONAL' };
+      if (m === 'add') {
+        const u = _v(T + '-fetch-uuid');
+        if (!u) return this.say('Enter person UUID.', '#ff4444');
+        const r = await this.api.post('/v1/people/' + u + '/emails', dto);
+        this._out('out-' + T, r, 'Create');
+        $('panel-close').click();
+      } else {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID email required.', '#ff4444');
+        const r = await this.api.patch('/v1/people/emails/' + u, dto);
+        this._out('out-' + T, r, 'Update');
+        $('panel-close').click();
+      }
+    };
+  }
+
+  // ── PHONE ───────────────────────────────────────────────────
+  _phone() {
+    const T = 'phone';
+    $(T + '-fetch-btn').onclick = () => {
+      const u = _v(T + '-fetch-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u + '/phones').then(r => this._out('out-' + T, r, 'Fetch phones'));
+    };
+    $(T + '-add-btn').onclick = () => this._open('add', T);
+    $(T + '-edit-btn').onclick = () => this._open('edit', T);
+    $(T + '-delete-btn').onclick = () => this._open('delete', T);
+
+    $(T + '-edit-fetch-btn').onclick = () => {
+      const u = _v(T + '-edit-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/phones/' + u).then(r => {
+        if (!r.ok) return this._out('out-' + T, r, 'Fetch');
+        const d = r.data.data || r.data;
+        $('ph-code').value = d.code || '+52';
+        $('ph-num').value = d.number || '';
+        $('ph-type').value = d.type_phone || 'MOBILE';
+        this.say('Data loaded.');
+      });
+    };
+
+    $(T + '-save').onclick = async () => {
+      const m = this._mode;
+      if (m === 'delete') {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID phone required.', '#ff4444');
+        if (!confirm('Delete phone ' + u + '?')) return;
+        const r = await this.api.del('/v1/people/phones/' + u);
+        this._out('out-' + T, r, 'Delete');
+        return $('panel-close').click();
+      }
+      const num = _v('ph-num');
+      if (!num) return this.say('Phone number required.', '#ff4444');
+      const dto = { code: _v('ph-code') || '+52', number: num, type_phone: _v('ph-type') || 'MOBILE' };
+      if (m === 'add') {
+        const u = _v(T + '-fetch-uuid');
+        if (!u) return this.say('Enter person UUID.', '#ff4444');
+        const r = await this.api.post('/v1/people/' + u + '/phones', dto);
+        this._out('out-' + T, r, 'Create');
+        $('panel-close').click();
+      } else {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID phone required.', '#ff4444');
+        const r = await this.api.patch('/v1/people/phones/' + u, dto);
+        this._out('out-' + T, r, 'Update');
+        $('panel-close').click();
+      }
+    };
+  }
+
+  // ── IDENTITY ────────────────────────────────────────────────
+  _identity() {
+    const T = 'identity';
+    $(T + '-fetch-btn').onclick = () => {
+      const u = _v(T + '-fetch-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u + '/identifiers').then(r => this._out('out-' + T, r, 'Fetch'));
+    };
+    $(T + '-add-btn').onclick = () => this._open('add', T);
+    $(T + '-edit-btn').onclick = () => this._open('edit', T);
+    $(T + '-delete-btn').onclick = () => this._open('delete', T);
+
+    $(T + '-edit-fetch-btn').onclick = () => {
+      const u = _v(T + '-edit-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/identifiers/' + u).then(r => {
+        if (!r.ok) return this._out('out-' + T, r, 'Fetch');
+        const d = r.data.data || r.data;
+        $('i-type').value = d.type || 'NATIONAL_ID';
+        $('i-val').value = d.value || '';
+        this.say('Data loaded.');
+      });
+    };
+
+    $(T + '-save').onclick = async () => {
+      const m = this._mode;
+      if (m === 'delete') {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID identifier required.', '#ff4444');
+        if (!confirm('Delete identifier ' + u + '?')) return;
+        const r = await this.api.del('/v1/people/identifiers/' + u);
+        this._out('out-' + T, r, 'Delete');
+        return $('panel-close').click();
+      }
+      const dto = { id_identifier_type: _v('i-type') || 'NATIONAL_ID', identifier_value: _v('i-val') };
+      if (!dto.identifier_value) return this.say('Value required.', '#ff4444');
+      if (m === 'add') {
+        const u = _v(T + '-fetch-uuid');
+        if (!u) return this.say('Enter person UUID.', '#ff4444');
+        const r = await this.api.post('/v1/people/' + u + '/identifiers', dto);
+        this._out('out-' + T, r, 'Create');
+        $('panel-close').click();
+      } else {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID identifier required.', '#ff4444');
+        const r = await this.api.patch('/v1/people/identifiers/' + u, dto);
+        this._out('out-' + T, r, 'Update');
+        $('panel-close').click();
+      }
+    };
+  }
+
+  // ── SOCIAL ──────────────────────────────────────────────────
+  _social() {
+    const T = 'social';
+    $(T + '-fetch-btn').onclick = () => {
+      const u = _v(T + '-fetch-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/' + u + '/emergency-contacts').then(r => this._out('out-' + T, r, 'Fetch'));
+    };
+    $(T + '-add-btn').onclick = () => this._open('add', T);
+    $(T + '-edit-btn').onclick = () => this._open('edit', T);
+    $(T + '-delete-btn').onclick = () => this._open('delete', T);
+
+    $(T + '-edit-fetch-btn').onclick = () => {
+      const u = _v(T + '-edit-uuid');
+      if (!u) return this.say('UUID required.', '#ff4444');
+      this.api.get('/v1/people/emergency-contacts/' + u).then(r => {
+        if (!r.ok) return this._out('out-' + T, r, 'Fetch');
+        const d = r.data.data || r.data;
+        $('s-fname').value = d.first_name || '';
+        $('s-lname').value = d.last_name || '';
+        $('s-phone').value = d.phone_number || '';
+        $('s-email').value = d.email || '';
+        $('s-rel').value = d.relationship_type || 'SPOUSE';
+        this.say('Data loaded.');
+      });
+    };
+
+    $(T + '-save').onclick = async () => {
+      const m = this._mode;
+      if (m === 'delete') {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID emergency contact required.', '#ff4444');
+        if (!confirm('Delete emergency contact ' + u + '?')) return;
+        const r = await this.api.del('/v1/people/emergency-contacts/' + u);
+        this._out('out-' + T, r, 'Delete');
+        return $('panel-close').click();
+      }
       const dto = {
-        address: document.getElementById('addr-street').value || 'Test Street 123',
-        postal_code: document.getElementById('addr-zip').value || '06600',
-        key_state: 'CMX', key_municipality: '016',
+        first_name: _v('s-fname') || 'Contact', last_name: _v('s-lname') || 'Person',
+        phone_number: _v('s-phone') || null, email: _v('s-email') || null,
+        relationship_type: _v('s-rel') || 'SPOUSE',
       };
-      this._mutate('post', 'addr-create-btn', 'out-address', `/v1/people/${uuid}/address`, dto, 'Address');
-    };
-    document.getElementById('addr-update-btn').onclick = () => {
-      const uuid = document.getElementById('addr-upd-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      const dto = {};
-      const addr = document.getElementById('addr-upd-street').value; if (addr) dto.address = addr;
-      this._mutate('patch', 'addr-update-btn', 'out-address', `/v1/people/${uuid}/address`, dto, 'Address');
-    };
-    document.getElementById('addr-delete-btn').onclick = () => {
-      const uuid = document.getElementById('addr-del-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('del', 'addr-delete-btn', 'out-address', `/v1/people/${uuid}/address`, null, 'Address');
-    };
-  }
-
-  _bindContact() {
-    // Emails
-    document.getElementById('em-list-btn').onclick = () => {
-      const uuid = document.getElementById('em-list-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._loadList('em-list-btn', 'out-emails', `/v1/people/${uuid}/emails`);
-    };
-    document.getElementById('em-create-btn').onclick = () => {
-      const uuid = document.getElementById('em-uuid').value;
-      const email = document.getElementById('em-email').value;
-      if (!uuid || !email) return this.say('UUID and email required.', '#ff4444');
-      this._mutate('post', 'em-create-btn', 'out-emails', `/v1/people/${uuid}/emails`, { email, type_email: 'PERSONAL' }, 'Email');
-    };
-    document.getElementById('em-update-btn').onclick = () => {
-      const uuid = document.getElementById('em-upd-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('patch', 'em-update-btn', 'out-emails', `/v1/people/${uuid}/emails`, { type_email: 'WORK' }, 'Email');
-    };
-    document.getElementById('em-delete-btn').onclick = () => {
-      const uuid = document.getElementById('em-del-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('del', 'em-delete-btn', 'out-emails', `/v1/people/${uuid}/emails`, null, 'Email');
-    };
-    // Phones
-    document.getElementById('ph-list-btn').onclick = () => {
-      const uuid = document.getElementById('ph-list-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._loadList('ph-list-btn', 'out-phones', `/v1/people/${uuid}/phones`);
-    };
-    document.getElementById('ph-create-btn').onclick = () => {
-      const uuid = document.getElementById('ph-uuid').value;
-      const code = document.getElementById('ph-code').value || '+52';
-      const num = document.getElementById('ph-num').value;
-      if (!uuid || !num) return this.say('UUID and number required.', '#ff4444');
-      this._mutate('post', 'ph-create-btn', 'out-phones', `/v1/people/${uuid}/phones`, { code, number: num, type_phone: 'MOBILE' }, 'Phone');
-    };
-    document.getElementById('ph-update-btn').onclick = () => {
-      const uuid = document.getElementById('ph-upd-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      const dto = {};
-      const num = document.getElementById('ph-upd-num').value; if (num) dto.number = num;
-      this._mutate('patch', 'ph-update-btn', 'out-phones', `/v1/people/${uuid}/phones`, dto, 'Phone');
-    };
-    document.getElementById('ph-delete-btn').onclick = () => {
-      const uuid = document.getElementById('ph-del-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('del', 'ph-delete-btn', 'out-phones', `/v1/people/${uuid}/phones`, null, 'Phone');
+      if (!dto.phone_number && !dto.email) return this.say('Phone or email required.', '#ff4444');
+      if (m === 'add') {
+        const u = _v(T + '-fetch-uuid');
+        if (!u) return this.say('Enter person UUID.', '#ff4444');
+        const r = await this.api.post('/v1/people/' + u + '/emergency-contacts', dto);
+        this._out('out-' + T, r, 'Create');
+        $('panel-close').click();
+      } else {
+        const u = _v(T + '-edit-uuid');
+        if (!u) return this.say('UUID emergency contact required.', '#ff4444');
+        const r = await this.api.patch('/v1/people/emergency-contacts/' + u, dto);
+        this._out('out-' + T, r, 'Update');
+        $('panel-close').click();
+      }
     };
   }
 
-  _bindIdentity() {
-    document.getElementById('id-list-btn').onclick = () => {
-      const uuid = document.getElementById('id-list-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._loadList('id-list-btn', 'out-ids', `/v1/people/${uuid}/identifiers`);
-    };
-    document.getElementById('id-create-btn').onclick = () => {
-      const uuid = document.getElementById('id-uuid').value;
-      const type = document.getElementById('id-type').value;
-      const val = document.getElementById('id-val').value;
-      if (!uuid || !val) return this.say('UUID and value required.', '#ff4444');
-      this._mutate('post', 'id-create-btn', 'out-ids', `/v1/people/${uuid}/identifiers`, { id_identifier_type: type, identifier_value: val }, 'Identifier');
-    };
-    document.getElementById('id-update-btn').onclick = () => {
-      const uuid = document.getElementById('id-upd-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      const dto = {};
-      const val = document.getElementById('id-upd-val').value; if (val) dto.identifier_value = val;
-      this._mutate('patch', 'id-update-btn', 'out-ids', `/v1/people/${uuid}/identifiers`, dto, 'Identifier');
-    };
-    document.getElementById('id-delete-btn').onclick = () => {
-      const uuid = document.getElementById('id-del-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('del', 'id-delete-btn', 'out-ids', `/v1/people/${uuid}/identifiers`, null, 'Identifier');
-    };
-  }
-
-  _bindSocial() {
-    document.getElementById('ec-list-btn').onclick = () => {
-      const uuid = document.getElementById('ec-list-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._loadList('ec-list-btn', 'out-ec', `/v1/people/${uuid}/emergency-contacts`);
-    };
-    document.getElementById('ec-create-btn').onclick = () => {
-      const uuid = document.getElementById('ec-uuid').value;
-      const fn = document.getElementById('ec-fname').value || 'Contact';
-      const ln = document.getElementById('ec-lname').value || 'Person';
-      const phone = document.getElementById('ec-phone').value || null;
-      const email = document.getElementById('ec-email').value || null;
-      const rel = document.getElementById('ec-rel').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('post', 'ec-create-btn', 'out-ec', `/v1/people/${uuid}/emergency-contacts`, {
-        first_name: fn, last_name: ln, phone_number: phone, email: email, relationship_type: rel,
-      }, 'Emergency Contact');
-    };
-    document.getElementById('ec-update-btn').onclick = () => {
-      const uuid = document.getElementById('ec-upd-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      const dto = {};
-      const fn = document.getElementById('ec-upd-fname').value; if (fn) dto.first_name = fn;
-      const phone = document.getElementById('ec-upd-phone').value; if (phone) dto.phone_number = phone;
-      this._mutate('patch', 'ec-update-btn', 'out-ec', `/v1/people/${uuid}/emergency-contacts`, dto, 'EC');
-    };
-    document.getElementById('ec-delete-btn').onclick = () => {
-      const uuid = document.getElementById('ec-del-uuid').value;
-      if (!uuid) return this.say('Enter UUID.', '#ff4444');
-      this._mutate('del', 'ec-delete-btn', 'out-ec', `/v1/people/${uuid}/emergency-contacts`, null, 'EC');
-    };
-  }
-
-  _bindValidation() {
-    document.getElementById('check-btn').onclick = () => {
-      const email = document.getElementById('check-email').value;
-      if (!email) return this.say('Enter email.', '#ff4444');
-      let url = `/v1/people/check-exists?email=${encodeURIComponent(email)}`;
-      const pid = document.getElementById('check-pid').value;
-      if (pid) url += `&personal_id=${encodeURIComponent(pid)}`;
-      this._loadList('check-btn', 'out-validation', url);
+  _validation() {
+    $('check-btn').onclick = () => {
+      const e = _v('check-email');
+      if (!e) return this.say('Enter email.', '#ff4444');
+      let url = '/v1/people/check-exists?email=' + encodeURIComponent(e);
+      const p = _v('check-pid');
+      if (p) url += '&personal_id=' + encodeURIComponent(p);
+      this.api.get(url).then(r => this._out('out-validation', r, 'Check'));
     };
   }
 }
