@@ -32,18 +32,44 @@ def _panel_wrap(tab, add_html, entity_label="entity"):
 </div>"""
 
 
+def _sub_label(text):
+    """Inline section label inside a modal form for 1:1 sub-resources."""
+    return f'<div style="color:var(--color-cyan);font-size:11px;margin:10px 0 4px;letter-spacing:1px">&rsaquo; {text}</div>'
+
+
 def build(root_path: str):
     js = f"{root_path}/static/app.js"
 
-    person_form = f"""<label>EMAIL</label>{_i('p-email','email')}
+    # ── Person form — includes all 1:1 sub-resource fields ───────
+    # Tabs are only for 1:N. 1:1 entities are grouped here (ADR 025).
+    person_form = f"""{_sub_label("PERSON")}
 <label>FIRST NAME</label>{_i('p-fname','first_name')}
 <label>LAST NAME</label>{_i('p-lname','last_name')}
-<label>PHONE CODE / NUMBER</label>{_i('p-phone-code','+52','+52')} {_i('p-phone-num','5500000000','5500000000')}
-<label>BIRTH DATE</label><input type="date" id="p-birth" value="1990-01-01" style="width:100%">
+<label>SECOND LAST NAME</label>{_i('p-slname','optional')}
+<label>GENDER</label><select id="p-gender" style="width:100%"><option value="">— not specified —</option><option value="MASCULINO">MASCULINO</option><option value="FEMENINO">FEMENINO</option><option value="TRANSGENERO">TRANSGENERO</option><option value="TRANSEXUAL">TRANSEXUAL</option><option value="TRAVESTI">TRAVESTI</option><option value="INTERSEXUAL">INTERSEXUAL</option><option value="OTRO">OTRO</option></select>
+<hr>
+{_sub_label("BIRTH — /v1/people/{'{uuid}'}/birth")}
+<label>BIRTH DATE</label><input type="date" id="p-birth" value="1990-01-01" data-init="1990-01-01" style="width:100%">
 <label>BIRTH COUNTRY</label>{_i('p-birth-country','MX','MX')}
-<label>ID TYPE</label><select id="p-id-type" style="width:100%"><option value="NATIONAL_ID">NATIONAL_ID</option><option value="FISCAL_ID">FISCAL_ID</option><option value="SOCIAL_SECURITY_ID">SOCIAL_SECURITY_ID</option></select>
-<label>ID VALUE</label>{_i('p-id-value','identifier value')}"""
+<label>BIRTH STATE</label>{_i('p-birth-state','state code')}
+<hr>
+{_sub_label("LEGAL INFO — optional — /v1/people/{'{uuid}'}/legal-info")}
+<label>NATIONALITY</label>{_i('p-nationality','MX')}
+<label>CIVIL STATUS</label><select id="p-civil" style="width:100%"><option value="">—</option><option value="SINGLE">SINGLE</option><option value="MARRIED">MARRIED</option><option value="COMMON_LAW">COMMON_LAW</option><option value="SEPARATED">SEPARATED</option><option value="DIVORCED">DIVORCED</option><option value="WIDOWED">WIDOWED</option><option value="PREFERS_NOT_TO_SAY">PREFERS_NOT_TO_SAY</option></select>
+<label>ID SEX (official doc)</label><select id="p-id-sex" style="width:100%"><option value="">—</option><option value="M">M</option><option value="F">F</option></select>
+<hr>
+{_sub_label("PROFILE — optional — /v1/people/{'{uuid}'}/profile")}
+<label>KNOWN AS</label>{_i('p-known-as','alias or nickname')}
+<label>OCCUPATION</label><select id="p-occupation" style="width:100%"><option value="">—</option><option value="EMPLOYED">EMPLOYED</option><option value="SELF_EMPLOYED">SELF_EMPLOYED</option><option value="FREELANCE">FREELANCE</option><option value="HOMEMAKER">HOMEMAKER</option><option value="UNEMPLOYED">UNEMPLOYED</option><option value="RETIRED">RETIRED</option><option value="OTHER">OTHER</option><option value="PREFERS_NOT_TO_SAY">PREFERS_NOT_TO_SAY</option></select>
+<label>EDUCATION</label><select id="p-education" style="width:100%"><option value="">—</option><option value="NO_STUDIES">NO_STUDIES</option><option value="PRIMARY">PRIMARY</option><option value="SECONDARY">SECONDARY</option><option value="HIGH_SCHOOL">HIGH_SCHOOL</option><option value="UNIVERSITY">UNIVERSITY</option><option value="POSTGRADUATE">POSTGRADUATE</option><option value="PREFERS_NOT_TO_SAY">PREFERS_NOT_TO_SAY</option></select>
+<hr>
+{_sub_label("SOCIOCULTURAL — optional — /v1/people/{'{uuid}'}/sociocultural-identity")}
+<label>INDIGENOUS</label><select id="p-indigenous" style="width:100%"><option value="">—</option><option value="true">YES</option><option value="false">NO</option></select>
+<label>MIGRANT</label><select id="p-migrant" style="width:100%"><option value="">—</option><option value="true">YES</option><option value="false">NO</option></select>
+<label>COUNTRY ORIGIN</label>{_i('p-country-origin','catalog key')}
+<label>RELIGION</label>{_i('p-religion','catalog key')}"""
 
+    # ── 1:N forms ─────────────────────────────────────────────────
     address_form = f"""<label>STREET</label>{_i('a-street','street address')}
 <label>POSTAL CODE</label>{_i('a-zip','postal_code')}
 <label>STATE</label>{_i('a-state','CMX','CMX')}
@@ -65,11 +91,12 @@ def build(root_path: str):
 <label>EMAIL</label>{_i('s-email','email')}
 <label>RELATIONSHIP</label><select id="s-rel" style="width:100%"><option value="SPOUSE">SPOUSE</option><option value="PARENT">PARENT</option><option value="SIBLING">SIBLING</option><option value="CHILD">CHILD</option><option value="FRIEND">FRIEND</option><option value="CAREGIVER">CAREGIVER</option><option value="OTHER">OTHER</option></select>"""
 
+    # ── Sections ──────────────────────────────────────────────────
     person = _section("PERSON", "person",
-        '<span class="verb get">GET</span><span class="path">/v1/people/{uuid}</span>&nbsp;'
+        '<span class="verb get">GET</span><span class="path">/v1/people/{uuid_person}</span>&nbsp;'
         '<span class="verb post">POST</span><span class="path">/v1/people</span>&nbsp;'
-        '<span class="verb patch">PATCH</span><span class="path">/v1/people/{uuid}</span>&nbsp;'
-        '<span class="verb delete">DELETE</span><span class="path">/v1/people/{uuid}</span>',
+        '<span class="verb patch">PATCH</span><span class="path">/v1/people/{uuid_person}</span>&nbsp;'
+        '<span class="verb delete">DELETE</span><span class="path">/v1/people/{uuid_person}</span>',
         person_form)
 
     address = _section("ADDRESS", "address",
@@ -133,7 +160,8 @@ def build(root_path: str):
 </div>"""
 
     return render_crud_page(root_path=root_path, title="CORE // PEOPLE",
-        tabs={"person": person, "address": address, "contact": contact, "identity": identity, "social": social, "validation": validation},
+        tabs={"person": person, "address": address, "contact": contact,
+              "identity": identity, "social": social, "validation": validation},
         js_module=js, active_tab="person", extra_footer=shared_panel)
 
 

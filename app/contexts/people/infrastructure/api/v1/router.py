@@ -2,11 +2,12 @@
 People endpoints for the Digital Hospital ecosystem.
 
 Owns the `people` schema: Person, Email, Phone, Address, PersonalIdentifier,
-Birth, LegalInfo, Profile, SocialPlatform, SocialLinks, EmergencyContact.
+Birth, LegalInfo, Profile, SocioculturalIdentity, SocialPlatform, SocialLinks, EmergencyContact.
 
 Path convention (ADR 034):
   Collection  → /people/{uuid_person}/<resource>       GET list + POST create
   Entity      → /people/<resource>/{uuid_entity}       GET single + PATCH + DELETE
+  1:1 sub     → /people/{uuid_person}/<resource>       GET + POST + PATCH (no entity UUID needed)
 """
 
 from typing import Optional
@@ -21,6 +22,10 @@ from app.contexts.people.application.dtos.people_dto import (
     CreatePhoneDTO, PhoneResponseDTO, UpdatePhoneDTO,
     CreateIdentifierDTO, IdentifierResponseDTO, UpdateIdentifierDTO,
     CreateEmergencyContactDTO, EmergencyContactResponseDTO, UpdateEmergencyContactDTO,
+    BirthResponseDTO, UpdateBirthDTO,
+    ProfileResponseDTO, CreateProfileDTO, UpdateProfileDTO,
+    LegalInfoResponseDTO, CreateLegalInfoDTO, UpdateLegalInfoDTO,
+    SocioculturalResponseDTO, CreateSocioculturalDTO, UpdateSocioculturalDTO,
 )
 from app.contexts.people.application.use_cases.create_person_use_case import CreatePersonUseCase
 from app.contexts.people.application.use_cases.get_person_use_case import GetPersonUseCase
@@ -46,14 +51,22 @@ from app.contexts.people.application.use_cases.emergency_use_case import (
     CreateEmergencyContactUseCase, ListEmergencyContactsUseCase, GetEmergencyContactUseCase,
     UpdateEmergencyContactUseCase, DeleteEmergencyContactUseCase,
 )
+from app.contexts.people.application.use_cases.birth_use_case import GetBirthUseCase, UpdateBirthUseCase
+from app.contexts.people.application.use_cases.profile_use_case import GetProfileUseCase, CreateProfileUseCase, UpdateProfileUseCase
+from app.contexts.people.application.use_cases.legal_info_use_case import GetLegalInfoUseCase, CreateLegalInfoUseCase, UpdateLegalInfoUseCase
+from app.contexts.people.application.use_cases.sociocultural_use_case import GetSocioculturalUseCase, CreateSocioculturalUseCase, UpdateSocioculturalUseCase
 from app.shared.schemas.responses import ApiResponseSingle, ApiResponsePaginated, PaginationResponse
 
-people_router     = APIRouter(prefix="/people", tags=["People"])
-address_router    = APIRouter(prefix="/people", tags=["Address"])
-contact_router    = APIRouter(prefix="/people", tags=["Contact"])
-identity_router   = APIRouter(prefix="/people", tags=["Identity"])
-social_router     = APIRouter(prefix="/people", tags=["Social"])
-validation_router = APIRouter(prefix="/people", tags=["Validation"])
+people_router          = APIRouter(prefix="/people", tags=["People"])
+address_router         = APIRouter(prefix="/people", tags=["Address"])
+contact_router         = APIRouter(prefix="/people", tags=["Contact"])
+identity_router        = APIRouter(prefix="/people", tags=["Identity"])
+social_router          = APIRouter(prefix="/people", tags=["Social"])
+birth_router           = APIRouter(prefix="/people", tags=["Birth"])
+profile_router         = APIRouter(prefix="/people", tags=["Profile"])
+legal_info_router      = APIRouter(prefix="/people", tags=["Legal Info"])
+sociocultural_router   = APIRouter(prefix="/people", tags=["Sociocultural Identity"])
+validation_router      = APIRouter(prefix="/people", tags=["Validation"])
 
 
 # ── PERSON ─────────────────────────────────────────────────────────────────────
@@ -282,3 +295,77 @@ async def update_emergency_contact(uuid_emergency: str, payload: UpdateEmergency
 @social_router.delete("/emergency-contacts/{uuid_emergency}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_emergency_contact(uuid_emergency: str):
     await DeleteEmergencyContactUseCase().execute(uuid_emergency=uuid_emergency)
+
+
+# ── BIRTH (1:1) ────────────────────────────────────────────────────────────────
+
+@birth_router.get("/{uuid_person}/birth", response_model=ApiResponseSingle[BirthResponseDTO])
+async def get_birth(uuid_person: str):
+    result = await GetBirthUseCase().execute(uuid_person=uuid_person)
+    return ApiResponseSingle(status_code=200, message="Birth record found.", data=result)
+
+
+@birth_router.patch("/{uuid_person}/birth", response_model=ApiResponseSingle[BirthResponseDTO])
+async def update_birth(uuid_person: str, payload: UpdateBirthDTO):
+    result = await UpdateBirthUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=200, message="Birth record updated.", data=result)
+
+
+# ── PROFILE (1:1) ──────────────────────────────────────────────────────────────
+
+@profile_router.get("/{uuid_person}/profile", response_model=ApiResponseSingle[ProfileResponseDTO])
+async def get_profile(uuid_person: str):
+    result = await GetProfileUseCase().execute(uuid_person=uuid_person)
+    return ApiResponseSingle(status_code=200, message="Profile found.", data=result)
+
+
+@profile_router.post("/{uuid_person}/profile", response_model=ApiResponseSingle[ProfileResponseDTO], status_code=status.HTTP_201_CREATED)
+async def create_profile(uuid_person: str, payload: CreateProfileDTO):
+    result = await CreateProfileUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=201, message="Profile created.", data=result)
+
+
+@profile_router.patch("/{uuid_person}/profile", response_model=ApiResponseSingle[ProfileResponseDTO])
+async def update_profile(uuid_person: str, payload: UpdateProfileDTO):
+    result = await UpdateProfileUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=200, message="Profile updated.", data=result)
+
+
+# ── LEGAL INFO (1:1) ───────────────────────────────────────────────────────────
+
+@legal_info_router.get("/{uuid_person}/legal-info", response_model=ApiResponseSingle[LegalInfoResponseDTO])
+async def get_legal_info(uuid_person: str):
+    result = await GetLegalInfoUseCase().execute(uuid_person=uuid_person)
+    return ApiResponseSingle(status_code=200, message="Legal info found.", data=result)
+
+
+@legal_info_router.post("/{uuid_person}/legal-info", response_model=ApiResponseSingle[LegalInfoResponseDTO], status_code=status.HTTP_201_CREATED)
+async def create_legal_info(uuid_person: str, payload: CreateLegalInfoDTO):
+    result = await CreateLegalInfoUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=201, message="Legal info created.", data=result)
+
+
+@legal_info_router.patch("/{uuid_person}/legal-info", response_model=ApiResponseSingle[LegalInfoResponseDTO])
+async def update_legal_info(uuid_person: str, payload: UpdateLegalInfoDTO):
+    result = await UpdateLegalInfoUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=200, message="Legal info updated.", data=result)
+
+
+# ── SOCIOCULTURAL IDENTITY (1:1) ───────────────────────────────────────────────
+
+@sociocultural_router.get("/{uuid_person}/sociocultural-identity", response_model=ApiResponseSingle[SocioculturalResponseDTO])
+async def get_sociocultural_identity(uuid_person: str):
+    result = await GetSocioculturalUseCase().execute(uuid_person=uuid_person)
+    return ApiResponseSingle(status_code=200, message="Sociocultural identity found.", data=result)
+
+
+@sociocultural_router.post("/{uuid_person}/sociocultural-identity", response_model=ApiResponseSingle[SocioculturalResponseDTO], status_code=status.HTTP_201_CREATED)
+async def create_sociocultural_identity(uuid_person: str, payload: CreateSocioculturalDTO):
+    result = await CreateSocioculturalUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=201, message="Sociocultural identity created.", data=result)
+
+
+@sociocultural_router.patch("/{uuid_person}/sociocultural-identity", response_model=ApiResponseSingle[SocioculturalResponseDTO])
+async def update_sociocultural_identity(uuid_person: str, payload: UpdateSocioculturalDTO):
+    result = await UpdateSocioculturalUseCase().execute(uuid_person=uuid_person, dto=payload)
+    return ApiResponseSingle(status_code=200, message="Sociocultural identity updated.", data=result)

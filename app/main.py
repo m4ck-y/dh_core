@@ -32,6 +32,7 @@ from app.shared.utils.logger import logger
 from app.contexts.people.infrastructure.api.v1.router import (
     people_router, contact_router, identity_router, social_router,
     address_router, validation_router,
+    birth_router, profile_router, legal_info_router, sociocultural_router,
 )
 
 
@@ -82,6 +83,10 @@ app.include_router(contact_router, prefix="/v1")
 app.include_router(identity_router, prefix="/v1")
 app.include_router(social_router, prefix="/v1")
 app.include_router(validation_router, prefix="/v1")
+app.include_router(birth_router, prefix="/v1")
+app.include_router(profile_router, prefix="/v1")
+app.include_router(legal_info_router, prefix="/v1")
+app.include_router(sociocultural_router, prefix="/v1")
 
 # Mount static files for JS assets
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

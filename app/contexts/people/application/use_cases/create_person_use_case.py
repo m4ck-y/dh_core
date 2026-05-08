@@ -1,5 +1,5 @@
-from dh_shared import Person, Email, Phone, Birth, LegalInfo, PersonalIdentifier
-from dh_shared import EIdentifierType, EVerificationStatus
+from dh_shared import Person, Email, Phone, Birth, LegalInfo
+from dh_shared import EVerificationStatus
 
 from app.contexts.people.application.dtos.people_dto import CreatePersonDTO, PersonResponseDTO
 from app.shared.database.postgres import AsyncSessionLocal
@@ -22,8 +22,6 @@ class CreatePersonUseCase:
             id_person = person.id
             uuid_person = person.uuid
 
-            session.add(Email(id_person=id_person, email=dto.email.address, type_email=dto.email.type))
-            session.add(Phone(id_person=id_person, code=dto.phone.code, number=dto.phone.number, type_phone=dto.phone.type))
             session.add(Birth(
                 id_person=id_person,
                 birth_date=dto.birth.date,
@@ -31,15 +29,14 @@ class CreatePersonUseCase:
                 key_state_birth=dto.birth.key_state,
             ))
 
+            if dto.email:
+                session.add(Email(id_person=id_person, email=dto.email.address, type_email=dto.email.type))
+
+            if dto.phone:
+                session.add(Phone(id_person=id_person, code=dto.phone.code, number=dto.phone.number, type_phone=dto.phone.type))
+
             if dto.key_nationality:
                 session.add(LegalInfo(id_person=id_person, key_nationality=dto.key_nationality))
-
-            if dto.personal_identifier and dto.personal_identifier.value:
-                session.add(PersonalIdentifier(
-                    id_person=id_person,
-                    id_identifier_type=dto.personal_identifier.type,
-                    identifier_value=dto.personal_identifier.value,
-                ))
 
             await session.commit()
 

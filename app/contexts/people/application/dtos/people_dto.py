@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from dh_shared.enums import (
     EAddressType, EVerificationStatus, EEmailType, EPhoneType, EIdentifierType, ERelationshipContact,
+    EGenderIdentity, ECivilStatus, ENationalIdSex, EOccupationType, EEducationLevel, EIncomeRange,
 )
 
 
@@ -43,15 +44,14 @@ class PersonalIdentifierInputDTO(BaseModel):
 
 
 class CreatePersonDTO(BaseModel):
-    email: EmailInputDTO = Field(..., description="Email sub-object.")
-    phone: PhoneInputDTO = Field(..., description="Phone sub-object.")
     first_name: str = Field(..., description="Given name(s).", examples=["Juan"])
     last_name: str = Field(..., description="First last name.", examples=["Perez"])
     second_last_name: Optional[str] = Field(None, description="Second last name.", examples=["Garcia"])
+    type_gender: Optional[EGenderIdentity] = Field(None, description="Gender identity.")
     birth: BirthInputDTO = Field(..., description="Birth sub-object.")
-    type_gender: Optional[str] = Field(None, description="Gender identity.", examples=["MASCULINO"])
-    key_nationality: Optional[str] = Field(None, description="Nationality code.", examples=["MX"])
-    personal_identifier: Optional[PersonalIdentifierInputDTO] = Field(None, description="Optional personal identifier (CURP, NSS, fiscal number).")
+    key_nationality: Optional[str] = Field(None, description="Nationality ISO code.", examples=["MX"])
+    email: Optional[EmailInputDTO] = Field(None, description="Optional initial email (use /emails endpoint for subsequent ones).")
+    phone: Optional[PhoneInputDTO] = Field(None, description="Optional initial phone (use /phones endpoint for subsequent ones).")
 
 
 class PersonResponseDTO(BaseModel):
@@ -188,3 +188,95 @@ class EmergencyContactResponseDTO(BaseModel):
     email: Optional[str] = Field(None)
     relationship_type: ERelationshipContact = Field(..., description="Relationship type.")
     notes: Optional[str] = Field(None)
+
+
+# ── 1:1 sub-resources ─────────────────────────────────────────────────────────
+
+class BirthResponseDTO(BaseModel):
+    uuid: UUID
+    birth_date: date_t
+    key_birth_country: Optional[str] = None
+    key_state_birth: Optional[str] = None
+    birth_date_timezone: Optional[str] = None
+
+
+class UpdateBirthDTO(BaseModel):
+    birth_date: Optional[date_t] = None
+    key_birth_country: Optional[str] = None
+    key_state_birth: Optional[str] = None
+    birth_date_timezone: Optional[str] = None
+
+
+class ProfileResponseDTO(BaseModel):
+    uuid: UUID
+    occupation_type: Optional[EOccupationType] = None
+    occupation_other: Optional[str] = None
+    known_as: Optional[str] = None
+    education_level: Optional[EEducationLevel] = None
+    income_range: Optional[EIncomeRange] = None
+    about_me: Optional[str] = None
+
+
+class CreateProfileDTO(BaseModel):
+    occupation_type: Optional[EOccupationType] = None
+    occupation_other: Optional[str] = Field(None, max_length=100)
+    known_as: Optional[str] = None
+    education_level: Optional[EEducationLevel] = None
+    income_range: Optional[EIncomeRange] = None
+    about_me: Optional[str] = None
+
+
+class UpdateProfileDTO(BaseModel):
+    occupation_type: Optional[EOccupationType] = None
+    occupation_other: Optional[str] = Field(None, max_length=100)
+    known_as: Optional[str] = None
+    education_level: Optional[EEducationLevel] = None
+    income_range: Optional[EIncomeRange] = None
+    about_me: Optional[str] = None
+
+
+class LegalInfoResponseDTO(BaseModel):
+    uuid: UUID
+    key_nationality: Optional[str] = None
+    type_national_id_sex: Optional[ENationalIdSex] = None
+    civil_status: Optional[ECivilStatus] = None
+
+
+class CreateLegalInfoDTO(BaseModel):
+    key_nationality: Optional[str] = None
+    type_national_id_sex: Optional[ENationalIdSex] = None
+    civil_status: Optional[ECivilStatus] = None
+
+
+class UpdateLegalInfoDTO(BaseModel):
+    key_nationality: Optional[str] = None
+    type_national_id_sex: Optional[ENationalIdSex] = None
+    civil_status: Optional[ECivilStatus] = None
+
+
+class SocioculturalResponseDTO(BaseModel):
+    uuid: UUID
+    self_considers_indigenous: Optional[bool] = None
+    key_indigenous_language: Optional[str] = None
+    self_considers_migrant: Optional[bool] = None
+    key_country_origin: Optional[str] = None
+    key_religion: Optional[str] = None
+    religion_other: Optional[str] = None
+
+
+class CreateSocioculturalDTO(BaseModel):
+    self_considers_indigenous: Optional[bool] = None
+    key_indigenous_language: Optional[str] = None
+    self_considers_migrant: Optional[bool] = None
+    key_country_origin: Optional[str] = None
+    key_religion: Optional[str] = None
+    religion_other: Optional[str] = Field(None, max_length=100)
+
+
+class UpdateSocioculturalDTO(BaseModel):
+    self_considers_indigenous: Optional[bool] = None
+    key_indigenous_language: Optional[str] = None
+    self_considers_migrant: Optional[bool] = None
+    key_country_origin: Optional[str] = None
+    key_religion: Optional[str] = None
+    religion_other: Optional[str] = Field(None, max_length=100)
