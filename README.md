@@ -22,14 +22,14 @@ Ver `ENDPOINTS.md`.
 
 ## Inter-Service
 
-Consumido por `dh_onboarding_back` para creacion y actualizacion de personas.
+Consumido por `dh_onboarding` para creacion y actualizacion de personas.
 
 ## Variables de Entorno
 
 | Variable | Default | Descripcion |
 |----------|---------|-------------|
 | `POSTGRES_URL` | `postgresql+asyncpg://...` | Conexion a base de datos |
-| `SERVICE_LOGGER_TRACER_URL` | `""` | URL de VitalTrace para logging |
+| `SERVICE_LOGGER_URL` | `""` | URL de VitalTrace para logging |
 
 ## Systemd Service Management
 

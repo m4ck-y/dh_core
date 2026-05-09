@@ -9,9 +9,9 @@ class Settings(BaseSettings):
     ROOT_PATH: str = "/api/core"
     CORS_ORIGINS: list[str] = ["*"]
 
-    POSTGRES_URL: str = "postgresql+asyncpg://user:password@localhost:5432/dh_hospital"
+    POSTGRES_URL: str
 
-    SERVICE_LOGGER_TRACER_URL: str = ""
+    SERVICE_LOGGER_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
